@@ -165,9 +165,12 @@ def log_specific_dose():
 
 @app.route('/patient_vitals')
 def patient_vitals():
-    if 'username' not in session:
+    if 'username' not in session or session['role'] != 'patient':
         return redirect(url_for('login'))
-    return render_template('patient_vitals.html')
+        
+    # Fetch meds so they show up on the vitals logging page
+    meds = db_handler.get_patient_medications(session['username'])
+    return render_template('patient_vitals.html', meds=meds)
 
 @app.route('/api/log_vitals', methods=['POST'])
 def api_log_vitals():
