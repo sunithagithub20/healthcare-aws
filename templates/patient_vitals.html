@@ -50,8 +50,15 @@
                 <div style="border: 1px solid #eee; padding: 1.5rem; border-radius: 12px; display:flex; gap: 20px; transition: 0.3s; background: white;">
                     <div class="pills-icon" style="font-size: 2.5rem;">💊</div>
                     <div style="flex:1;">
-                        <h4 style="color: var(--primary); margin-bottom: 0.5rem;">{{ med.drug_name }}</h4>
-                        <p style="margin-bottom: 1rem; color: var(--text-secondary);">{{ med.dosage }} - {{ med.instructions }}</p>
+                        <h4 style="color: var(--primary-dark); margin-bottom: 0.5rem; font-size: 1.3rem;">{{ med.drug_name }}</h4>
+                        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                            <div style="background: #eef2ff; color: var(--primary-dark); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
+                                💊 Dosage: {{ med.dosage }}
+                            </div>
+                            <div style="background: #f0fdf4; color: #166534; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">
+                                ⏰ Timing: {{ med.timing }}
+                            </div>
+                        </div>
                         
                         <div style="display: flex; gap: 15px;">
                             <button class="btn btn-primary" onclick="logSpecificDose('{{ med.drug_name }}', 'Taken')">Mark as Taken</button>
