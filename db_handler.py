@@ -134,6 +134,7 @@ def get_alert_history(patient_usernames=None):
 
 # --- MONITORING ---
 def check_missed_doses():
+    """Background job to check for missing medication doses today."""
     patients = get_table(USERS_TABLE).scan(FilterExpression=Attr('role').eq('patient')).get('Items', [])
     today_start = datetime.now().strftime('%Y-%m-%d')
     missed_alerts = []
@@ -150,10 +151,20 @@ def check_missed_doses():
             ).get('Items', [])
             
             if not logs:
+                # Dynamically fetch the latest caregiver contact info
+                caregiver_username = patient.get('assigned_caregiver')
+                caregiver_contact = patient.get('caregiver_contact', 'N/A')
+                
+                if caregiver_username:
+                    caregiver = get_user(caregiver_username)
+                    if caregiver:
+                        caregiver_contact = caregiver.get('phone_number', caregiver_contact)
+
                 missed_alerts.append({
                     "patient": patient['username'],
                     "medication_name": med['drug_name'],
-                    "caregiver_contact": patient.get('caregiver_contact', 'N/A')
+                    "caregiver_contact": caregiver_contact,
+                    "caregiver_username": caregiver_username
                 })
                 log_dose(patient['username'], med['drug_name'], "Auto-Check", "Missed Alerts Sent Today")
                 

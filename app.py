@@ -24,17 +24,16 @@ def get_sns_topic():
     try:
         # Get SNS Topic ARN from SSM Parameter Store (Dynamic Config)
         parameter = ssm.get_parameter(Name='/Healthcare/SNS_TOPIC_ARN', WithDecryption=False)
-        return parameter['Parameter']['Value']
+        return parameter['Parameter']['Value'].strip()
     except Exception as e:
         logger.error(f"Error fetching SNS ARN from SSM: {e}")
         return None
 
-def simulated_sns_alert(patient_username, caregiver_contact, medication_name):
+def trigger_sns_alert(patient_username, caregiver_contact, alert_msg):
     topic_arn = get_sns_topic()
-    alert_msg = f"[VITALGUARD ALERT] Patient {patient_username} missed their dose of {medication_name}! Please check on them."
     
-    # 1. Log to CloudWatch (Service 1)
-    logger.info(f"SNS ALERT TRIGGERED: {alert_msg}")
+    # 1. Log to CloudWatch
+    logger.info(f"ALERT SYSTEM: {alert_msg}")
     
     # 2. Publish to SNS (Service 2)
     if topic_arn:
@@ -42,13 +41,13 @@ def simulated_sns_alert(patient_username, caregiver_contact, medication_name):
             sns.publish(
                 TopicArn=topic_arn,
                 Message=alert_msg,
-                Subject=f"Missed Dose Alert: {patient_username}"
+                Subject=f"VitalGuard Alert: {patient_username}"
             )
-            logger.info("Successfully published to SNS.")
+            logger.info(f"SNS Topic alert sent for {patient_username}.")
         except Exception as e:
-            logger.error(f"Failed to publish to SNS: {e}")
+            logger.error(f"SNS Publish Error: {e}")
     else:
-        logger.warning("SNS Topic ARN not found in SSM. Simulated alert only.")
+        logger.warning(f"SNS Topic ARN missing in SSM. Logged alert for {patient_username}: {alert_msg}")
 
 # --- BACKGROUND MONITORING ---
 def background_checker():
@@ -57,9 +56,11 @@ def background_checker():
         try:
             missed = db_handler.check_missed_doses()
             for m in missed:
-                simulated_sns_alert(m['patient'], m['caregiver_contact'], m['medication_name'])
+                alert_msg = f"[VITALGUARD ALERT] Patient {m['patient']} missed their dose of {m['medication_name']}! Could you please check on them?"
+                trigger_sns_alert(m['patient'], m['caregiver_contact'], alert_msg)
+                
                 # Log the alert event in history
-                db_handler.log_alert(m['patient'], m['caregiver_contact'], f"System detected missed dose: {m['medication_name']}")
+                db_handler.log_alert(m['patient'], m['caregiver_contact'], alert_msg)
         except Exception as e:
             logger.error(f"Error in background checker: {e}")
         time.sleep(60)
@@ -127,16 +128,22 @@ def patient_dashboard():
         return redirect(url_for('login'))
     
     meds = db_handler.get_patient_medications(session['username'])
-    logs = db_handler.get_patient_dose_logs(session['username'])
     vitals = db_handler.get_patient_vitals(session['username'])
     
     # Get user details for profile section
     user_details = db_handler.get_user_by_email(session['email'])
     
+    # Fetch caregiver email dynamically
+    caregiver_email = "N/A"
+    if user_details and user_details.get('assigned_caregiver'):
+        caregiver = db_handler.get_user(user_details['assigned_caregiver'])
+        if caregiver:
+            caregiver_email = caregiver.get('email', 'N/A')
+    
     return render_template('patient_dashboard.html', 
                            patient=user_details,
+                           caregiver_email=caregiver_email,
                            meds=meds, 
-                           logs=logs,
                            vitals=vitals)
 
 @app.route('/api/log_specific_dose', methods=['POST'])
@@ -150,7 +157,9 @@ def log_specific_dose():
         if status == "Missed":
             user = db_handler.get_user_by_email(session['email'])
             contact = user.get('caregiver_contact', 'N/A')
-            simulated_sns_alert(session['username'], contact, med_name)
+            
+            alert_msg = f"[VITALGUARD ALERT] Patient {session['username']} marked medication {med_name} as MISSED! Could you please check on them?"
+            trigger_sns_alert(session['username'], contact, alert_msg)
         return jsonify({"success": True})
     return jsonify({"success": False})
 
@@ -163,7 +172,47 @@ def patient_vitals():
 @app.route('/api/log_vitals', methods=['POST'])
 def api_log_vitals():
     vitals_data = request.json
-    if db_handler.log_vitals(session['username'], vitals_data):
+    username = session.get('username')
+    email = session.get('email')
+    
+    # Range Checking Logic
+    status = "Stable"
+    alert_reasons = []
+    
+    try:
+        hr = int(vitals_data.get('hr', 75))
+        glucose = int(vitals_data.get('glucose', 100))
+        bp = vitals_data.get('bp', '120/80')
+        
+        if hr < 50 or hr > 110:
+            status = "Warning"
+            alert_reasons.append(f"Abnormal Heart Rate: {hr} BPM")
+        
+        if glucose < 60 or glucose > 200:
+            status = "Warning"
+            alert_reasons.append(f"Abnormal Glucose: {glucose} mg/dL")
+            
+        if '/' in bp:
+            systolic, diastolic = map(int, bp.split('/'))
+            if systolic > 150 or systolic < 90 or diastolic > 95 or diastolic < 60:
+                status = "Warning"
+                alert_reasons.append(f"Abnormal Blood Pressure: {bp}")
+    except:
+        pass # Ignore parsing errors for now
+        
+    vitals_data['status'] = status
+    
+    if db_handler.log_vitals(username, vitals_data):
+        if status == "Warning":
+            user = db_handler.get_user_by_email(email)
+            contact = user.get('caregiver_contact', 'N/A')
+
+            alert_msg = f"[VITALGUARD VITAL ALERT] Patient {username} has abnormal health readings: {', '.join(alert_reasons)}. Could you please check on them?"
+            
+            # Use SNS trigger
+            trigger_sns_alert(username, contact, alert_msg)
+            db_handler.log_alert(username, contact, alert_msg)
+            
         return jsonify({"success": True})
     return jsonify({"success": False})
 
@@ -176,14 +225,12 @@ def caregiver_dashboard():
     patients = db_handler.get_patients_for_caregiver(session['username'])
     patient_usernames = [p['username'] for p in patients]
     
-    all_doses = db_handler.get_all_dose_logs(patient_usernames)
     alert_history = db_handler.get_alert_history(patient_usernames)
     patient_vitals = db_handler.get_latest_vitals_all_patients()
     
     return render_template('caregiver_dashboard.html', 
                            username=session['username'], 
                            patients=patients,
-                           all_doses=all_doses,
                            alert_history=alert_history,
                            patient_vitals=patient_vitals)
 

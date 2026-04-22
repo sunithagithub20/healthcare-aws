@@ -29,10 +29,6 @@
             <h3>{{ patients|length }}</h3>
             <p>Active Patients</p>
         </div>
-        <div class="glass-card card text-center fade-in delay-3" style="border-top: 5px solid var(--primary);">
-            <h3>Stable</h3>
-            <p>Overall Network Status</p>
-        </div>
     </div>
 
     <!-- Alert History Bottom Full Width -->
@@ -92,6 +88,7 @@
                 <thead>
                     <tr style="border-bottom: 2px solid var(--primary-light); text-align: left;">
                         <th style="padding: 1rem;">Patient</th>
+                        <th style="padding: 1rem;">Contact Info</th>
                         <th style="padding: 1rem;">Blood Pressure</th>
                         <th style="padding: 1rem;">Heart Rate</th>
                         <th style="padding: 1rem;">Glucose</th>
@@ -108,6 +105,12 @@
                                 {% if v and v.status == 'Warning' %}
                                     <span style="color: var(--danger); font-size: 1.2rem; margin-left: 0.5rem;" title="Abnormal Readings Detected">⚠️</span>
                                 {% endif %}
+                            </td>
+                            <td style="padding: 1rem;">
+                                <div style="font-size: 0.85rem; color: var(--text-secondary);">
+                                    📧 <a href="mailto:{{ p.email }}" style="color: var(--primary); text-decoration: none;">{{ p.email }}</a><br>
+                                    📞 {{ p.phone_number }}
+                                </div>
                             </td>
                             <td style="padding: 1rem;">{{ v.bp if v else '--' }}</td>
                             <td style="padding: 1rem;">{{ v.hr ~ ' BPM' if v else '--' }}</td>

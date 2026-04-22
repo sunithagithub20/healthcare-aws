@@ -24,6 +24,7 @@
             <div>
                 <p><strong>My Personal Phone:</strong> {{ patient.phone_number or 'N/A' }}</p>
                 <p><strong>Caregiver Emergency Contact:</strong> {{ patient.caregiver_contact or 'N/A' }}</p>
+                <p><strong>Caregiver Email:</strong> <a href="mailto:{{ caregiver_email }}" style="color: var(--primary); text-decoration: none;">{{ caregiver_email }}</a></p>
             </div>
         </div>
     </div>
@@ -53,7 +54,18 @@
         </div>
     </div>
 
-    <!-- Multi-Page Action Card -->
+    <!-- Multi-Page Action Card / Warning Card -->
+    {% if vitals and vitals[0].status == 'Warning' %}
+    <div class="glass-card card mb-3 fade-in delay-1" style="background: linear-gradient(135deg, #fff 0%, #fff5f5 100%); border-left: 6px solid var(--danger);">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
+            <div>
+                <h2 style="color: var(--danger); margin-bottom: 0.5rem;">⚠️ Health Alert: Abnormal Readings</h2>
+                <p style="color: var(--text-secondary); max-width: 600px;">Your latest vitals are outside the normal range. Your caregiver has been notified. <strong>Please ensure you have taken your prescribed medications listed below.</strong></p>
+            </div>
+            <a href="{{ url_for('patient_vitals') }}" class="btn btn-outline" style="border-color: var(--danger); color: var(--danger);">Update Vitals Again</a>
+        </div>
+    </div>
+    {% else %}
     <div class="glass-card card mb-3 fade-in delay-1" style="background: linear-gradient(135deg, #fff 0%, #f0f7ff 100%); border-left: 6px solid var(--primary);">
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1.5rem;">
             <div>
@@ -63,6 +75,7 @@
             <a href="{{ url_for('patient_vitals') }}" class="btn btn-primary btn-large" style="white-space: nowrap;">Log Health Details →</a>
         </div>
     </div>
+    {% endif %}
     
     <div class="dashboard-grid">
         <!-- Quick Medication Actions -->
@@ -76,9 +89,14 @@
                     {% for med in meds %}
                         <div style="border: 1px solid #f0f0f0; padding: 1.5rem; border-radius: 12px; display: flex; justify-content: space-between; align-items: center; background: #fafafa; transition: transform 0.2s;">
                             <div>
-                                <strong style="color: var(--primary-dark); font-size: 1.1rem;">{{ med.drug_name }}</strong>
-                                <div style="font-size: 0.9rem; color: var(--text-secondary); margin-top: 0.3rem;">
-                                    Dosage: {{ med.dosage }} | Timing: {{ med.timing }}
+                                <strong style="color: var(--primary-dark); font-size: 1.3rem;">{{ med.drug_name }}</strong>
+                                <div style="display: flex; gap: 1.5rem; margin-top: 0.5rem;">
+                                    <div style="background: #eef2ff; color: var(--primary-dark); padding: 4px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+                                        💊 Dosage: {{ med.dosage }}
+                                    </div>
+                                    <div style="background: #f0fdf4; color: #166534; padding: 4px 12px; border-radius: 20px; font-size: 0.9rem; font-weight: 600;">
+                                        ⏰ Timing: {{ med.timing }}
+                                    </div>
                                 </div>
                             </div>
                             <div style="display: flex; gap: 1rem;">
