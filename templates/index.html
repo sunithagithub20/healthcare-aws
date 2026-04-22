@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}VitalGuard - Professional Medication Adherence Platform{% endblock %}
+
+{% block content %}
+<section class="hero">
+    <div class="container hero-container">
+        <div class="hero-content">
+            <h1 class="fade-in">Precision Care for Your <span class="highlight">Loved Ones</span></h1>
+            <p class="fade-in delay-1">The next-generation medication adherence monitoring system designed for real-time tracking, caregiver alerts, and improved patient outcomes.</p>
+            <div class="hero-actions fade-in delay-2">
+                {% if 'username' in session %}
+                    {% if session['role'] == 'patient' %}
+                        <a href="{{ url_for('patient_dashboard') }}" class="btn btn-primary btn-large">Go to Patient Dashboard</a>
+                    {% else %}
+                        <a href="{{ url_for('caregiver_dashboard') }}" class="btn btn-primary btn-large">Go to Caregiver Dashboard</a>
+                    {% endif %}
+                {% else %}
+                    <a href="{{ url_for('register') }}" class="btn btn-primary btn-large">Get Started Now</a>
+                    <a href="{{ url_for('login') }}" class="btn btn-outline btn-large">Client Login</a>
+                {% endif %}
+            </div>
+        </div>
+        <div class="hero-image glass-card fade-in delay-3" style="display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, rgba(255,255,255,0.1), rgba(255,255,255,0.05)); border: 1px solid rgba(255,255,255,0.2);">
+            <div style="text-align: center; padding: 2rem;">
+                <div style="font-size: 4rem; margin-bottom: 1rem;">🛡️</div>
+                <h3 style="color: white; font-family: 'Outfit', sans-serif;">Advanced Healthcare Monitoring</h3>
+                <p style="color: rgba(255,255,255,0.8);">Secure. Real-time. Reliable.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="features">
+    <div class="container text-center">
+        <h2 class="section-title">Built for Reliability</h2>
+        <div class="features-grid">
+            <div class="feature-card glass-card">
+                <div class="feature-icon">🔔</div>
+                <h3>Real-time Alerts</h3>
+                <p>Caregivers receive instant notifications if a dose is missed, ensuring timely intervention.</p>
+            </div>
+            <div class="feature-card glass-card">
+                <div class="feature-icon">📊</div>
+                <h3>Dose Analytics</h3>
+                <p>Track adherence patterns over time with detailed logs and comprehensive reporting.</p>
+            </div>
+            <div class="feature-card glass-card">
+                <div class="feature-icon">👨‍⚕️</div>
+                <h3>Caregiver Support</h3>
+                <p>Empowering caregivers with the tools they need to manage complex medication schedules.</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section class="cta-section">
+    <div class="container glass-card cta-card text-center">
+        <h2>Start Monitoring Today</h2>
+        <p>Join thousands of families improving their healthcare routines with VitalGuard.</p>
+        <a href="{{ url_for('register') }}" class="btn btn-white btn-large">Register for Free</a>
+    </div>
+</section>
+{% endblock %}

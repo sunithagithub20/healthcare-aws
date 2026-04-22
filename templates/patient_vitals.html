@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Log Vitals - VitalGuard{% endblock %}
+
+{% block content %}
+<header class="dashboard-header">
+    <div class="container welcome-msg">
+        <h1 class="fade-in">Health Logging</h1>
+        <p class="fade-in delay-1">Update your medical status for your caregiver to review.</p>
+    </div>
+</header>
+
+<div class="container container-dashboard">
+    <div style="margin-bottom: 2rem;">
+        <a href="{{ url_for('patient_dashboard') }}" class="btn btn-outline">← Back to Summary</a>
+    </div>
+
+    <!-- Health Vitals Logging Card -->
+    <div class="glass-card card mb-3 fade-in">
+        <div class="card-header">
+            <h3>Update Today's Metric</h3>
+        </div>
+        <form id="vitals-form" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1.5rem; align-items: end;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Blood Pressure (e.g., 120/80)</label>
+                <input type="text" id="vital-bp" class="form-control" placeholder="120/80">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Heart Rate (BPM)</label>
+                <input type="number" id="vital-hr" class="form-control" placeholder="72">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label>Glucose Level (mg/dL)</label>
+                <input type="number" id="vital-glucose" class="form-control" placeholder="95">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <button type="button" class="btn btn-primary btn-block" onclick="logVitals()">Save Vitals</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Daily Prescriptions Checklist -->
+    <div class="glass-card card fade-in delay-1">
+        <div class="card-header">
+            <h3>Record Medication Intake</h3>
+        </div>
+        {% if meds %}
+            <div style="display:flex; flex-direction:column; gap: 1.5rem;">
+            {% for med in meds %}
+                <div style="border: 1px solid #eee; padding: 1.5rem; border-radius: 12px; display:flex; gap: 20px; transition: 0.3s; background: white;">
+                    <div class="pills-icon" style="font-size: 2.5rem;">💊</div>
+                    <div style="flex:1;">
+                        <h4 style="color: var(--primary); margin-bottom: 0.5rem;">{{ med.drug_name }}</h4>
+                        <p style="margin-bottom: 1rem; color: var(--text-secondary);">{{ med.dosage }} - {{ med.instructions }}</p>
+                        
+                        <div style="display: flex; gap: 15px;">
+                            <button class="btn btn-primary" onclick="logSpecificDose('{{ med.drug_name }}', 'Taken')">Mark as Taken</button>
+                            <button class="btn btn-outline" style="border-color: var(--danger); color: var(--danger);" onclick="logSpecificDose('{{ med.drug_name }}', 'Missed')">Missed</button>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+            </div>
+        {% else %}
+            <p style="color: var(--text-secondary);">No medications to record.</p>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    async function logSpecificDose(medName, statusStr) {
+        try {
+            const response = await fetch('/api/log_specific_dose', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ medication_name: medName, status: statusStr })
+            });
+            const data = await response.json();
+            if(data.success) {
+                alert('Dose logged successfully');
+                location.reload();
+            }
+        } catch (error) { console.error(error); }
+    }
+
+    async function logVitals() {
+        const bp = document.getElementById('vital-bp').value;
+        const hr = document.getElementById('vital-hr').value;
+        const glucose = document.getElementById('vital-glucose').value;
+
+        if(!bp && !hr && !glucose) {
+            alert('Please enter at least one measurement.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/log_vitals', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bp, hr, glucose })
+            });
+            const data = await response.json();
+            if(data.success) {
+                alert('Vitals updated successfully');
+                location.reload();
+            }
+        } catch (error) { console.error(error); }
+    }
+</script>
+
+<style>
+    .container-dashboard { padding: 4rem 2rem; margin-top: -5rem; position: relative; z-index: 10; }
+    .mb-3 { margin-bottom: 2rem; }
+    .card { background: white; padding: 2.5rem; }
+</style>
+{% endblock %}

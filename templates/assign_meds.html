@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Prescriptions - VitalGuard{% endblock %}
+
+{% block content %}
+<header class="dashboard-header">
+    <div class="container welcome-msg">
+        <h1 class="fade-in">Prescription Management</h1>
+        <p class="fade-in delay-1">Assign new medications and track patient adherence.</p>
+    </div>
+</header>
+
+<div class="container container-dashboard">
+    <div style="margin-bottom: 2rem;">
+        <a href="{{ url_for('caregiver_dashboard') }}" class="btn btn-outline">← Back to Monitor</a>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Add Prescription Tool -->
+        <div class="glass-card card fade-in delay-1">
+            <div class="card-header">
+                <h3>Assign New Prescription</h3>
+            </div>
+            <form method="POST" action="{{ url_for('assign_meds') }}">
+                <div class="form-group">
+                    <label>Select Patient</label>
+                    <select name="patient_username" class="form-control" required>
+                        <option value="">-- Choose Patient --</option>
+                        {% for p in patients %}
+                            <option value="{{ p.username }}">{{ p.name }} ({{ p.username }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Medication/Drug Name</label>
+                    <select name="drug_name" class="form-control" required>
+                        <option value="">-- Choose Medicine --</option>
+                        <option value="Paracetamol">Paracetamol (Analgesic)</option>
+                        <option value="Lisinopril">Lisinopril (Blood Pressure)</option>
+                        <option value="Metformin">Metformin (Diabetes)</option>
+                        <option value="Amoxicillin">Amoxicillin (Antibiotic)</option>
+                        <option value="Atorvastatin">Atorvastatin (Cholesterol)</option>
+                    </select>
+                </div>
+                
+                <div class="grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                    <div>
+                        <label>Dosage</label>
+                        <input type="text" name="dosage" class="form-control" placeholder="e.g. 10mg" required>
+                    </div>
+                    <div>
+                        <label>Timing/Frequency</label>
+                        <input type="text" name="timing" class="form-control" placeholder="e.g. 2x Daily" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Start Date</label>
+                    <input type="date" name="start_date" class="form-control" required>
+                </div>
+                
+                <div class="form-group">
+                    <label>Special Instructions</label>
+                    <textarea name="instructions" class="form-control" rows="3" placeholder="e.g. Take with food"></textarea>
+                </div>
+                
+                <button type="submit" class="btn btn-primary btn-block btn-large">Assign Medication</button>
+            </form>
+        </div>
+
+        <!-- Global Activity Log -->
+        <div class="glass-card card fade-in delay-2">
+            <div class="card-header">
+                <h3>Recent Dose Logs</h3>
+            </div>
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                {% if all_doses %}
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr style="border-bottom: 2px solid var(--primary-light); text-align: left;">
+                            <th style="padding: 1rem;">Patient</th>
+                            <th style="padding: 1rem;">Medication</th>
+                            <th style="padding: 1rem;">Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for log in all_doses %}
+                        <tr style="border-bottom: 1px solid #eee;">
+                            <td style="padding: 1rem;"><strong>{{ log.patient_username }}</strong></td>
+                            <td style="padding: 1rem; font-size: 0.9rem;">{{ log.medication_name }}</td>
+                            <td style="padding: 1rem;">
+                                <span class="status-tag" style="background: {% if log.status == 'Taken' %}var(--success){% else %}var(--warning){% endif %}; color: white;">
+                                    {{ log.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="color: var(--text-secondary);">No logs yet.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .container-dashboard { padding: 4rem 2rem; margin-top: -5rem; position: relative; z-index: 10; }
+    .card { background: white; padding: 2.5rem; }
+</style>
+{% endblock %}

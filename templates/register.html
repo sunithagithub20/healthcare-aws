@@ -1,0 +1,177 @@
+{% extends "base.html" %}
+
+{% block title %}Register - VitalGuard{% endblock %}
+
+{% block content %}
+<div class="auth-wrapper">
+    <div class="glass-card auth-card fade-in" style="max-width: 600px;">
+        <div class="card-header text-center">
+            <h2>Create Your Account</h2>
+        </div>
+        
+        {% if error %}
+            <div class="alert" style="color: var(--danger); margin-bottom: 1.5rem; text-align: center; background: #fff5f5; padding: 0.8rem; border-radius: 8px; border: 1px solid #ffcccc;">
+                {{ error }}
+            </div>
+        {% endif %}
+        
+        <form method="POST" action="{{ url_for('register') }}">
+            <div class="grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" name="name" class="form-control" placeholder="John Doe" required>
+                </div>
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" name="username" class="form-control" placeholder="johndoe123" required>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>Email Address</label>
+                <input type="email" name="email" class="form-control" placeholder="yourname@example.com" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Password</label>
+                <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+            </div>
+            
+            <div class="form-group">
+                <label>Role</label>
+                <select name="role" id="role" class="form-control" onchange="updateFormFields()">
+                    <option value="patient">Patient</option>
+                    <option value="caregiver">Caregiver</option>
+                </select>
+            </div>
+
+            <!-- Patient Specific Fields -->
+            <div id="patient-fields">
+                <div class="grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Age</label>
+                        <input type="number" name="age" class="form-control" placeholder="45">
+                    </div>
+                    <div class="form-group">
+                        <label>Blood Group</label>
+                        <select name="blood_group" class="form-control">
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Assigned Caregiver</label>
+                    <select name="assigned_caregiver" id="assigned_caregiver" class="form-control" required onchange="showCaregiverPhone()">
+                        <option value="">-- Select Your Caregiver --</option>
+                        {% for cg in caregivers %}
+                            <option value="{{ cg.username }}" data-phone="{{ cg.phone_number or 'Not Provided' }}">{{ cg.name }} ({{ cg.username }})</option>
+                        {% endfor %}
+                    </select>
+                    <div id="caregiver-phone-preview" style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--primary); font-weight: 600; display: none;">
+                        📞 Contact Number: <span id="cg-phone-val"></span>
+                    </div>
+                    <small style="color: var(--text-secondary); font-size: 0.75rem;">Select the medical professional who will monitor you.</small>
+                </div>
+                <div class="form-group">
+                    <label>Your Personal Phone Number (10 Digits)</label>
+                    <input type="tel" name="phone_number" class="form-control" placeholder="9876543210" pattern="[1-9][0-9]{9}" title="Please enter your 10-digit phone number" required>
+                </div>
+            </div>
+
+            <!-- Caregiver Specific Fields -->
+            <div id="caregiver-fields" style="display:none;">
+                <div class="form-group">
+                    <label>Phone Number (10 Digits)</label>
+                    <input type="tel" name="phone_number" class="form-control" placeholder="9876543210" pattern="[1-9][0-9]{9}" title="Please enter a 10-digit phone number that does not start with 0">
+                    <small style="color: var(--text-secondary); font-size: 0.75rem;">Format: 10 digits, avoid starting with 0</small>
+                </div>
+                <div class="grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Specialization</label>
+                        <select name="specialization" class="form-control">
+                            <option value="General Practice">General Practice</option>
+                            <option value="Geriatrics">Geriatrics</option>
+                            <option value="Cardiology">Cardiology</option>
+                            <option value="Neurology">Neurology</option>
+                            <option value="Pediatrics">Pediatrics</option>
+                            <option value="Oncology">Oncology</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Shift Timing</label>
+                        <select name="shift_timing" class="form-control">
+                            <option value="Morning">Morning (06:00 - 14:00)</option>
+                            <option value="Afternoon">Afternoon (14:00 - 22:00)</option>
+                            <option value="Night">Night (22:00 - 06:00)</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-block btn-large" style="margin-top: 1rem;">Register Account</button>
+        </form>
+        
+        <div style="margin-top: 2rem; text-align: center; border-top: 1px solid #eee; padding-top: 1.5rem;">
+            <p class="small-text" style="color: var(--text-secondary);">Already have an account? <a href="{{ url_for('login') }}" style="color: var(--primary); font-weight: 600; text-decoration: none;">Sign in</a></p>
+        </div>
+    </div>
+</div>
+
+<script>
+    function updateFormFields() {
+        const role = document.getElementById('role').value;
+        const patientDiv = document.getElementById('patient-fields');
+        const caregiverDiv = document.getElementById('caregiver-fields');
+        
+        // Toggle visibility
+        patientDiv.style.display = role === 'patient' ? 'block' : 'none';
+        caregiverDiv.style.display = role === 'caregiver' ? 'block' : 'none';
+        
+        // Toggle 'required' attribute for Patient fields
+        const patientInputs = patientDiv.querySelectorAll('input, select');
+        patientInputs.forEach(el => {
+            if (role === 'patient' && (el.name === 'phone_number' || el.name === 'assigned_caregiver')) {
+                el.required = true;
+            } else {
+                el.required = false;
+            }
+        });
+        
+        // Toggle 'required' attribute for Caregiver fields
+        const caregiverInputs = caregiverDiv.querySelectorAll('input, select');
+        caregiverInputs.forEach(el => {
+            if (role === 'caregiver' && el.name === 'phone_number') {
+                el.required = true;
+            } else {
+                el.required = false;
+            }
+        });
+    }
+
+    function showCaregiverPhone() {
+        const select = document.getElementById('assigned_caregiver');
+        const preview = document.getElementById('caregiver-phone-preview');
+        const phoneVal = document.getElementById('cg-phone-val');
+        
+        const selectedOption = select.options[select.selectedIndex];
+        const phone = selectedOption.getAttribute('data-phone');
+        
+        if (phone && select.value !== "") {
+            phoneVal.textContent = phone;
+            preview.style.display = 'block';
+        } else {
+            preview.style.display = 'none';
+        }
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', updateFormFields);
+</script>
+{% endblock %}

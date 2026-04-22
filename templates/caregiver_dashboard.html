@@ -1,0 +1,140 @@
+{% extends "base.html" %}
+
+{% block title %}Caregiver Portal - VitalGuard{% endblock %}
+
+{% block content %}
+<header class="dashboard-header">
+    <div class="container welcome-msg">
+        <h1 class="fade-in">Caregiver Dashboard</h1>
+        <p class="fade-in delay-1">Logged in as: 👨‍⚕️ {{ username }}</p>
+    </div>
+</header>
+
+<div class="container container-dashboard">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <div>
+            <h2>Clinical Supervision Overview</h2>
+            <p style="color: var(--text-secondary);">Real-time monitoring of all assigned patients.</p>
+        </div>
+        <a href="{{ url_for('assign_meds') }}" class="btn btn-primary btn-large">Manage Prescriptions →</a>
+    </div>
+
+    <!-- Alert Summary Stats -->
+    <div class="grid-3" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem; margin-bottom: 3rem;">
+        <div class="glass-card card text-center fade-in delay-1" style="border-top: 5px solid var(--danger);">
+            <h3>{{ alert_history|length }}</h3>
+            <p>Total Alerts Logged</p>
+        </div>
+        <div class="glass-card card text-center fade-in delay-2" style="border-top: 5px solid var(--success);">
+            <h3>{{ patients|length }}</h3>
+            <p>Active Patients</p>
+        </div>
+        <div class="glass-card card text-center fade-in delay-3" style="border-top: 5px solid var(--primary);">
+            <h3>Stable</h3>
+            <p>Overall Network Status</p>
+        </div>
+    </div>
+
+    <!-- Alert History Bottom Full Width -->
+    <div class="glass-card card fade-in delay-3" style="margin-top: 2rem;">
+        <div class="card-header" style="border-bottom: 1px solid #f0f0f0; margin-bottom: 1.5rem; padding-bottom: 1rem;">
+            <h3>🚨 System Alert Dispatch History (SNS Log)</h3>
+            <p style="font-size: 0.9rem; color: var(--text-secondary);">Real-time SMS notification tracking</p>
+        </div>
+        <div class="table-responsive">
+            {% if alert_history %}
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="background: var(--bg-light); text-align: left;">
+                        <th style="padding: 1.2rem; border-radius: 12px 0 0 12px;">Time</th>
+                        <th style="padding: 1.2rem;">Patient</th>
+                        <th style="padding: 1.2rem;">Alert Cause</th>
+                        <th style="padding: 1.2rem;">SMS Target</th>
+                        <th style="padding: 1.2rem; border-radius: 0 12px 12px 0;">Delivery Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for alert in alert_history %}
+                    <tr style="border-bottom: 1px solid #f9f9f9; transition: background 0.2s;">
+                        <td style="padding: 1.2rem; font-size: 0.9rem; color: var(--text-secondary); font-family: monospace;">{{ alert.timestamp[:19].replace('T', ' ') }}</td>
+                        <td style="padding: 1.2rem;"><strong>{{ alert.patient_username }}</strong></td>
+                        <td style="padding: 1.2rem;">
+                            <span class="status-tag" style="background: var(--danger); color: white; padding: 4px 12px; border-radius: 6px; font-weight: 500;">
+                                {{ alert.message }}
+                            </span>
+                        </td>
+                        <td style="padding: 1.2rem; color: var(--text-secondary);">{{ alert.caregiver_contact }}</td>
+                        <td style="padding: 1.2rem;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span class="dot green"></span>
+                                <span style="color: var(--success); font-weight: 600;">{{ alert.status }}</span>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div style="text-align: center; padding: 3rem;">
+                <p style="color: var(--text-secondary); font-size: 1.1rem;">No alerts have been dispatched yet.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Patient Vitals Monitoring Section -->
+    <div class="glass-card card fade-in delay-4" style="margin-top: 2rem;">
+        <div class="card-header">
+            <h3>📈 Latest Patient Vitals Monitor</h3>
+        </div>
+        <div class="table-responsive">
+            <table style="width: 100%; border-collapse: collapse;">
+                <thead>
+                    <tr style="border-bottom: 2px solid var(--primary-light); text-align: left;">
+                        <th style="padding: 1rem;">Patient</th>
+                        <th style="padding: 1rem;">Blood Pressure</th>
+                        <th style="padding: 1rem;">Heart Rate</th>
+                        <th style="padding: 1rem;">Glucose</th>
+                        <th style="padding: 1rem;">Last Checked</th>
+                        <th style="padding: 1rem;">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in patients %}
+                        {% set v = patient_vitals.get(p.username) %}
+                        <tr style="border-bottom: 1px solid #eee; {% if v and v.status == 'Warning' %}background-color: #fff5f5;{% endif %}">
+                            <td style="padding: 1rem;">
+                                <strong>{{ p.name }}</strong> ({{ p.username }})
+                                {% if v and v.status == 'Warning' %}
+                                    <span style="color: var(--danger); font-size: 1.2rem; margin-left: 0.5rem;" title="Abnormal Readings Detected">⚠️</span>
+                                {% endif %}
+                            </td>
+                            <td style="padding: 1rem;">{{ v.bp if v else '--' }}</td>
+                            <td style="padding: 1rem;">{{ v.hr ~ ' BPM' if v else '--' }}</td>
+                            <td style="padding: 1rem;">{{ v.glucose ~ ' mg/dL' if v else '--' }}</td>
+                            <td style="padding: 1rem; font-size: 0.85rem;">{{ v.timestamp[:16].replace('T', ' ') if v else 'Never' }}</td>
+                            <td style="padding: 1rem;">
+                                {% if v %}
+                                    {% if v.status == 'Warning' %}
+                                        <span class="status-tag pulse-red" style="background: var(--danger); color: white;">Attention Required</span>
+                                    {% else %}
+                                        <span class="status-tag" style="background: var(--success); color: white;">Stable</span>
+                                    {% endif %}
+                                {% else %}
+                                    <span class="status-tag" style="background: var(--text-secondary); color: white;">No Data</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<style>
+    .container-dashboard { padding: 4rem 2rem; margin-top: -5rem; position: relative; z-index: 10; }
+    .card { background: white; padding: 2.5rem; }
+    .card-header h3 { font-size: 1.5rem; color: var(--primary-dark); }
+</style>
+{% endblock %}
